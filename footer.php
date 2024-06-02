@@ -66,53 +66,57 @@ wp_footer();
 $cat = single_cat_title();
 //echo $cat;
  ?>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script-->
 <script>
-   
-    jQuery(document).ready(function($) {
+function waitForJQuery() {
+    if (!window.jQuery) {
+        setTimeout(waitForJQuery, 50);
+    } else {
         var page = 2;
         var loading = false;
-		var cat = "<?php echo single_cat_title(); ?>";
-        jQuery('#load-more-btn').click(function(e){
-			// alert(cat);
-			jQuery(this).html('<i class="fa fa-refresh fa-spin"></i>');
-			//alert();
-              if (!loading) {
+        var fetchedData = null; // Temporary variable to store fetched data
+        var cat = "<?php echo single_cat_title(); ?>";
+
+        // Setup Intersection Observer
+        var observer = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting && !loading && !fetchedData) {
                 loading = true;
                 var data = {
                     action: 'load_more_posts',
                     page: page,
-					category: cat
+                    category: cat
                 };
-                $.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
-						jQuery('#load-more-btn').html('Meer berichten');
-					 $("#load-more-btn").before(response);
-					 
-					  jQuery('article').each(function() {
-        var id = jQuery(this).attr('post-id');
-   
-        if (jQuery('[post-id="'+id+'"]').length > 1) {
-        
-            jQuery('[post-id="'+id+'"]:gt(0)').remove();
-        }
-    });
-					 
-                    //$('#content_box').append(response);
+                jQuery.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
+                    fetchedData = response; // Store fetched data in the temporary variable
                     loading = false;
-                    page++;
                 });
-            }  
+            }
+        }, {
+            rootMargin: '400px',
+            threshold: 0.5 // Trigger when 50% of the button is visible
         });
-    });
-	
-	// jQuery(document).ready(function($) {
-	// 	setTimeout(function(){
-	// 		//alert();
-	// 		jQuery('#load-more-btn').click();
-	// 	},1500)
-	
-	// })
-	
-	
+
+        // Observe the button
+        observer.observe(document.getElementById('load-more-btn'));
+
+        // On button click, use the fetched data
+        jQuery('#load-more-btn').click(function(e) {
+            if (fetchedData) {
+                jQuery(this).html('<i class="fa fa-refresh fa-spin"></i>');
+                jQuery("#load-more-btn").before(fetchedData);
+                jQuery('article').each(function() {
+                    var id = jQuery(this).attr('post-id');
+                    if (jQuery('[post-id="' + id + '"]').length > 1) {
+                        jQuery('[post-id="' + id + '"]:gt(0)').remove();
+                    }
+                });
+                fetchedData = null; // Clear the temporary variable
+                page++;
+                jQuery('#load-more-btn').html('Meer berichten');
+            }
+        });
+    }
+}
+
+waitForJQuery();
 </script>
-	
